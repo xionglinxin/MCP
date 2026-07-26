@@ -1,0 +1,67 @@
+{
+  "title": "企业网络拓扑图",
+  "stencil": "企业网络产品 安全(VSS,蓝).vss",
+  "layout": {
+    "direction": "LR"
+  },
+  "nodes": [
+    {
+      "id": "internet",
+      "label": "Internet",
+      "master": "Cloud"
+    },
+    {
+      "id": "firewall",
+      "label": "防火墙",
+      "master": "Firewall"
+    },
+    {
+      "id": "router",
+      "label": "核心路由器",
+      "master": "Router"
+    },
+    {
+      "id": "switch",
+      "label": "核心交换机",
+      "master": "Switch"
+    },
+    {
+      "id": "server",
+      "label": "业务服务器",
+      "master": "Server"
+    },
+    {
+      "id": "database",
+      "label": "数据库服务器",
+      "master": "Database"
+    }
+  ],
+  "edges": [
+    {
+      "from": "internet",
+      "to": "firewall",
+      "label": "外部访问"
+    },
+    {
+      "from": "firewall",
+      "to": "router",
+      "label": "安全策略"
+    },
+    {
+      "from": "router",
+      "to": "switch",
+      "label": "路由"
+    },
+    {
+      "from": "switch",
+      "to": "server",
+      "label": "业务流量"
+    },
+    {
+      "from": "server",
+      "to": "database",
+      "label": "数据库连接"
+    }
+  ],
+  "output_name": "network_topology"
+}

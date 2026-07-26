@@ -1,0 +1,44 @@
+{
+    "title": "简单三路由器拓扑",
+    "devices": [
+        {
+            "id": "R1",
+            "name": "边界路由器",
+            "device_type": "AR_Router",
+            "model": "AR1220",
+            "config_script": "interface GigabitEthernet0/0/0\n ip address 192.168.1.1 255.255.255.252\n undo shutdown\n#\ninterface GigabitEthernet0/0/1\n ip address 10.0.0.1 255.255.255.0\n undo shutdown"
+        },
+        {
+            "id": "R2",
+            "name": "核心路由器",
+            "device_type": "AR_Router",
+            "model": "AR2220",
+            "config_script": "interface GigabitEthernet0/0/0\n ip address 192.168.1.2 255.255.255.252\n undo shutdown\n#\ninterface GigabitEthernet0/0/1\n ip address 192.168.2.1 255.255.255.252\n undo shutdown"
+        },
+        {
+            "id": "R3",
+            "name": "接入路由器",
+            "device_type": "AR_Router",
+            "model": "AR1220",
+            "config_script": "interface GigabitEthernet0/0/0\n ip address 192.168.2.2 255.255.255.252\n undo shutdown\n#\ninterface GigabitEthernet0/0/1\n ip address 172.16.0.1 255.255.255.0\n undo shutdown"
+        }
+    ],
+    "links": [
+        {
+            "from_device": "R1",
+            "from_interface": "GE0/0/0",
+            "to_device": "R2",
+            "to_interface": "GE0/0/0",
+            "link_type": "Ethernet"
+        },
+        {
+            "from_device": "R2",
+            "from_interface": "GE0/0/1",
+            "to_device": "R3",
+            "to_interface": "GE0/0/0",
+            "link_type": "Ethernet"
+        }
+    ],
+    "output_name": "simple_topology",
+    "auto_layout": true
+}

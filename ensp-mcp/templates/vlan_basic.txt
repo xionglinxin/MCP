@@ -1,0 +1,23 @@
+# VLAN 基础配置模板
+# 适用于 S/CE 系列交换机
+
+vlan batch 10 20 30 40
+#
+vlan 10
+ description 管理VLAN
+#
+vlan 20
+ description 业务VLAN
+#
+vlan 30
+ description 服务器VLAN
+#
+vlan 40
+ description 访客VLAN
+#
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 10 20 30 40
+#
+interface Vlanif10
+ ip address 192.168.10.1 255.255.255.0

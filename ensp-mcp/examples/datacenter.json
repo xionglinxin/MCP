@@ -1,0 +1,86 @@
+{
+    "title": "数据中心网络拓扑",
+    "devices": [
+        {
+            "id": "FW1",
+            "name": "边界防火墙",
+            "device_type": "USG_Firewall",
+            "model": "USG6600",
+            "config_script": "firewall zone trust\n add interface GigabitEthernet1/0/0\n#\nfirewall zone untrust\n add interface GigabitEthernet1/0/1\n#\nsecurity-policy\n rule name trust_to_untrust\n  source-zone trust\n  destination-zone untrust\n  action permit"
+        },
+        {
+            "id": "CORE1",
+            "name": "核心交换机1",
+            "device_type": "CE_Switch",
+            "model": "CE6800",
+            "config_script": "vlan batch 10 20 30 40\n#\ninterface GigabitEthernet0/0/1\n port link-type trunk\n port trunk allow-pass vlan 10 20 30 40\n#\ninterface Vlanif10\n ip address 192.168.10.252 255.255.255.0\n vrrp vrid 1 virtual-ip 192.168.10.254"
+        },
+        {
+            "id": "CORE2",
+            "name": "核心交换机2",
+            "device_type": "CE_Switch",
+            "model": "CE6800",
+            "config_script": "vlan batch 10 20 30 40\n#\ninterface GigabitEthernet0/0/1\n port link-type trunk\n port trunk allow-pass vlan 10 20 30 40\n#\ninterface Vlanif10\n ip address 192.168.10.253 255.255.255.0\n vrrp vrid 1 virtual-ip 192.168.10.254"
+        },
+        {
+            "id": "ACC1",
+            "name": "接入交换机1",
+            "device_type": "S_Switch",
+            "model": "S5700",
+            "config_script": "vlan batch 10 20\n#\ninterface GigabitEthernet0/0/1\n port link-type trunk\n port trunk allow-pass vlan 10 20"
+        },
+        {
+            "id": "ACC2",
+            "name": "接入交换机2",
+            "device_type": "S_Switch",
+            "model": "S5700",
+            "config_script": "vlan batch 30 40\n#\ninterface GigabitEthernet0/0/1\n port link-type trunk\n port trunk allow-pass vlan 30 40"
+        }
+    ],
+    "links": [
+        {
+            "from_device": "FW1",
+            "from_interface": "GE1/0/0",
+            "to_device": "CORE1",
+            "to_interface": "GE0/0/1",
+            "link_type": "Ethernet"
+        },
+        {
+            "from_device": "CORE1",
+            "from_interface": "GE0/0/2",
+            "to_device": "CORE2",
+            "to_interface": "GE0/0/2",
+            "link_type": "Ethernet"
+        },
+        {
+            "from_device": "CORE1",
+            "from_interface": "GE0/0/10",
+            "to_device": "ACC1",
+            "to_interface": "GE0/0/1",
+            "link_type": "Ethernet"
+        },
+        {
+            "from_device": "CORE2",
+            "from_interface": "GE0/0/10",
+            "to_device": "ACC1",
+            "to_interface": "GE0/0/2",
+            "link_type": "Ethernet"
+        },
+        {
+            "from_device": "CORE1",
+            "from_interface": "GE0/0/11",
+            "to_device": "ACC2",
+            "to_interface": "GE0/0/1",
+            "link_type": "Ethernet"
+        },
+        {
+            "from_device": "CORE2",
+            "from_interface": "GE0/0/11",
+            "to_device": "ACC2",
+            "to_interface": "GE0/0/2",
+            "link_type": "Ethernet"
+        }
+    ],
+    "output_name": "datacenter",
+    "auto_layout": true
+}

@@ -1,0 +1,57 @@
+{
+  "title": "系统架构图",
+  "stencil": "企业网络产品 安全(VSS,蓝).vss",
+  "layout": {
+    "direction": "LR"
+  },
+  "nodes": [
+    {
+      "id": "user",
+      "label": "用户",
+      "master": "User"
+    },
+    {
+      "id": "frontend",
+      "label": "Vue 前端",
+      "master": "PC"
+    },
+    {
+      "id": "backend",
+      "label": "Spring Boot 后端",
+      "master": "Server"
+    },
+    {
+      "id": "database",
+      "label": "MySQL 数据库",
+      "master": "Database"
+    },
+    {
+      "id": "cache",
+      "label": "Redis 缓存",
+      "master": "Server"
+    }
+  ],
+  "edges": [
+    {
+      "from": "user",
+      "to": "frontend",
+      "label": "访问"
+    },
+    {
+      "from": "frontend",
+      "to": "backend",
+      "label": "HTTP API"
+    },
+    {
+      "from": "backend",
+      "to": "database",
+      "label": "JDBC"
+    },
+    {
+      "from": "backend",
+      "to": "cache",
+      "label": "缓存读写"
+    }
+  ],
+  "output_name": "system_architecture"
+}
