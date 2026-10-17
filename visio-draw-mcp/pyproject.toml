@@ -2,12 +2,12 @@
 name = "visio-draw-mcp"
 version = "2.1.0"
 description = "MCP Server for Visio diagram automation"
-authors = ["xionglinxin"]
+authors = [{name = "xionglinxin"}]
 readme = "README.md"
 requires-python = ">=3.10"
 
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp==1.29.0",
     "pydantic>=2.0.0",
     "pywin32>=306",
 ]
@@ -30,3 +30,6 @@ target-version = ["py310"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.setuptools]
+py-modules = ["server", "visio_driver", "drawing", "session", "layout", "schema", "config", "generate_redundant_gateway_topology", "generate_firewall_case_28"]

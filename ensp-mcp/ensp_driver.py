@@ -1,6 +1,8 @@
 """eNSP 拓扑生成驱动 — 生成 .topo 文件和设备配置脚本"""
 
 import xml.etree.ElementTree as ET
+import tempfile
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -130,13 +132,13 @@ save
     return configs
 
 
-def save_configs(configs: dict[str, str], output_name: str) -> list[str]:
+def save_configs(configs: dict[str, str], output_name: str, output_dir: Path = OUTPUT_DIR) -> list[str]:
     """保存配置脚本到文件"""
     saved_files = []
 
     for device_id, config in configs.items():
         filename = f"{output_name}_{device_id}_config.txt"
-        filepath = OUTPUT_DIR / filename
+        filepath = output_dir / filename
         filepath.write_text(config, encoding="utf-8")
         saved_files.append(str(filepath))
 
@@ -197,35 +199,29 @@ def generate_topology(spec: TopologySpec) -> dict[str, Any]:
     except Exception as e:
         return {"ok": False, "error": f"无法创建输出目录: {e}", "warnings": warnings}
 
-    # 生成 .topo 文件
+    # Stage the complete bundle on the same filesystem, then publish by rename.
+    # Readers never see a successful-looking topology with missing configs.
     try:
         topo_xml, xml_warnings = generate_topo_xml(spec)
         warnings.extend(xml_warnings)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        topo_filename = f"{spec.output_name}_{timestamp}.topo"
-        topo_filepath = OUTPUT_DIR / topo_filename
-        topo_filepath.write_text(topo_xml, encoding="utf-8")
-    except Exception as e:
-        return {"ok": False, "error": f".topo 文件生成失败: {e}", "warnings": warnings}
-
-    # 生成配置脚本
-    try:
-        configs = generate_config_scripts(spec)
-        config_files = save_configs(configs, f"{spec.output_name}_{timestamp}")
-    except Exception as e:
+        bundle_name = f"{spec.output_name}_{datetime.now():%Y%m%d_%H%M%S}_{uuid.uuid4().hex}"
+        bundle_dir = OUTPUT_DIR / bundle_name
+        with tempfile.TemporaryDirectory(prefix=".staging-", dir=OUTPUT_DIR) as staging:
+            stage = Path(staging)
+            topo_name = f"{spec.output_name}.topo"
+            (stage / topo_name).write_text(topo_xml, encoding="utf-8")
+            configs = generate_config_scripts(spec)
+            staged_configs = save_configs(configs, spec.output_name, stage)
+            config_files = [str(bundle_dir / Path(p).name) for p in staged_configs]
+            stage.rename(bundle_dir)
         return {
-            "ok": False,
-            "error": f"配置脚本生成失败: {e}",
-            "topo_file": str(topo_filepath),
+            "ok": True,
+            "topo_file": str(bundle_dir / topo_name),
+            "config_files": config_files,
             "warnings": warnings,
         }
-
-    return {
-        "ok": True,
-        "topo_file": str(topo_filepath),
-        "config_files": config_files,
-        "warnings": warnings,
-    }
+    except Exception as e:
+        return {"ok": False, "error": f"Artifact generation failed: {e}", "warnings": warnings}
 
 
 def list_templates() -> dict[str, Any]:

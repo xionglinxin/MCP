@@ -14,11 +14,11 @@
 
 Claude 会调用 `ensp_generate_simple_topology` 工具，自动生成包含 3 台路由器的拓扑。
 
-**输出文件**：
-- `outputs/simple_example_YYYYMMDD_HHMMSS.topo` — 拓扑文件
-- `outputs/simple_example_YYYYMMDD_HHMMSS_R1_config.txt` — R1 配置
-- `outputs/simple_example_YYYYMMDD_HHMMSS_R2_config.txt` — R2 配置
-- `outputs/simple_example_YYYYMMDD_HHMMSS_R3_config.txt` — R3 配置
+**输出文件**（UUID 为每次生成的唯一后缀，请使用工具返回的完整路径）：
+- `outputs/simple_example_YYYYMMDD_HHMMSS_UUID/simple_example.topo` — 拓扑文件
+- `outputs/simple_example_YYYYMMDD_HHMMSS_UUID/simple_example_R1_config.txt` — R1 配置
+- `outputs/simple_example_YYYYMMDD_HHMMSS_UUID/simple_example_R2_config.txt` — R2 配置
+- `outputs/simple_example_YYYYMMDD_HHMMSS_UUID/simple_example_R3_config.txt` — R3 配置
 
 ### 2. 在 eNSP 中打开拓扑
 
@@ -343,13 +343,13 @@ interface GigabitEthernet0/0/0
 ### 配置文件命名
 
 ```
-{output_name}_{timestamp}_{device_id}_config.txt
+outputs/{output_name}_{timestamp}_{uuid}/{output_name}_{device_id}_config.txt
 ```
 
 示例：
 ```
-enterprise_20260604_120000_R1_config.txt
-enterprise_20260604_120000_SW1_config.txt
+outputs/enterprise_20260604_120000_UUID/enterprise_R1_config.txt
+outputs/enterprise_20260604_120000_UUID/enterprise_SW1_config.txt
 ```
 
 ## 与 Claude 的交互技巧

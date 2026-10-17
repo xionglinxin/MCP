@@ -1,7 +1,8 @@
 """数据结构定义 — eNSP 拓扑和设备配置的 Pydantic v2 模型"""
 
+import re
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class DeviceSpec(BaseModel):
@@ -19,6 +20,16 @@ class DeviceSpec(BaseModel):
         min_length=1,
         max_length=200,
     )
+    @field_validator("id")
+    @classmethod
+    def safe_device_id(cls, value: str) -> str:
+        # Portable Windows filename component; links still use the original ID.
+        if (not re.fullmatch(r"[a-zA-Z0-9_\-\u4e00-\u9fff]{1,64}", value)
+                or value.upper() in {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+                or re.fullmatch(r"(?:COM|LPT)[1-9]", value.upper())):
+            raise ValueError("Device ID must be a safe filename component (1-64 letters, digits, underscores, hyphens or Chinese characters)")
+        return value
+
     name: str = Field(
         ...,
         description="设备显示名称（如 'Core-Switch-1', '边界路由器'）",

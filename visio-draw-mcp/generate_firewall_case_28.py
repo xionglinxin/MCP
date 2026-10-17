@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 from config import OUTPUT_DIR, STENCIL_DIR
+from drawing import _contained_path, _resolve_stencil_path
 from visio_driver import (
     VIS_FIXED_FORMAT_PDF,
     VIS_OPEN_HIDDEN,
@@ -41,6 +42,7 @@ UNTRUST_IP = "3.3.3.28/24"
 
 def ensure_stencil() -> None:
     STENCIL_DIR.mkdir(exist_ok=True)
+    _contained_path(STENCIL_DIR, STENCIL_PATH)
     if not STENCIL_PATH.exists():
         if not STENCIL_SOURCE.exists():
             raise FileNotFoundError(f"Missing Huawei stencil: {STENCIL_SOURCE}")
@@ -100,16 +102,16 @@ def generate() -> dict:
     ensure_stencil()
     OUTPUT_DIR.mkdir(exist_ok=True)
 
-    vsdx_path = OUTPUT_DIR / f"{OUTPUT_STEM}.vsdx"
-    png_path = OUTPUT_DIR / f"{OUTPUT_STEM}.png"
-    pdf_path = OUTPUT_DIR / f"{OUTPUT_STEM}.pdf"
+    vsdx_path = _contained_path(OUTPUT_DIR, OUTPUT_DIR / f"{OUTPUT_STEM}.vsdx")
+    png_path = _contained_path(OUTPUT_DIR, OUTPUT_DIR / f"{OUTPUT_STEM}.png")
+    pdf_path = _contained_path(OUTPUT_DIR, OUTPUT_DIR / f"{OUTPUT_STEM}.pdf")
 
     for path in (vsdx_path, png_path, pdf_path):
         if path.exists():
             path.unlink()
 
     with _visio_session() as visio:
-        stencil_doc = visio.Documents.OpenEx(str(STENCIL_PATH), VIS_OPEN_RO | VIS_OPEN_HIDDEN)
+        stencil_doc = visio.Documents.OpenEx(str(_resolve_stencil_path(STENCIL_NAME)), VIS_OPEN_RO | VIS_OPEN_HIDDEN)
         try:
             doc = visio.Documents.Add("")
             try:

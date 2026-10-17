@@ -69,7 +69,7 @@ pip install mcp pydantic
 🤖 → ensp_list_templates() → 模板列表
 
 👤 生成一个包含防火墙、核心交换机和接入交换机的数据中心拓扑
-🤖 → ensp_generate_topology(spec) → outputs/datacenter_xxx.topo + 配置文件
+🤖 → ensp_generate_topology(spec) → outputs/datacenter_时间戳_UUID/datacenter.topo + 同目录配置文件
 ```
 
 ## 项目结构
@@ -167,3 +167,11 @@ ensp-mcp/
 4. 🔲 从现有 .topo 文件读取和修改
 5. 🔲 拓扑图可视化预览（PNG 导出）
 6. 🔲 批量设备配置生成
+
+## 输出路径兼容性
+
+每次生成在 `outputs/{output_name}_{timestamp}_{uuid}/` 下发布完整文件集。
+请使用工具返回的 `topo_file` 和 `config_files` 路径，不要拼接旧版平铺文件名。
+旧文件仍可通过 `outputs://list` 查看；生成失败不会发布不完整文件集。
+设备 ID 现限制为 1–64 个字母、数字、下划线、连字符或中文，且不能为 Windows 保留名称。
+测试方法和 Windows 集成限制见 [HARDENING.md](../HARDENING.md)。

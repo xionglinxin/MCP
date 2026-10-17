@@ -634,6 +634,8 @@ if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "--http":
         port = int(sys.argv[2])
         print(f"Visio Draw MCP Server v{SERVER_VERSION} — HTTP mode on port {port}")
-        mcp.run(transport="streamable-http", host="127.0.0.1", port=port)
+        mcp.settings.host = "127.0.0.1"
+        mcp.settings.port = port
+        mcp.run(transport="streamable-http")
     else:
         mcp.run()

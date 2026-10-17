@@ -101,14 +101,22 @@ def _find_master_by_keyword(stencil_doc, keyword: str):
 # ══════════════════════════════════════════════════════════
 
 
-def _resolve_stencil_path(stencil: str) -> Path:
-    """解析并验证图标库路径（防止目录遍历）"""
-    path = (STENCIL_DIR / stencil).resolve()
-    if not str(path).startswith(str(STENCIL_DIR.resolve())):
-        raise ValueError(f"Invalid stencil path: {stencil}")
-    if not path.exists():
-        raise FileNotFoundError(f"Stencil file not found: {stencil}")
+def _contained_path(root: Path, candidate: Path) -> Path:
+    """Resolve symlinks and compare path components, never string prefixes."""
+    path = candidate.resolve()
+    path.relative_to(root.resolve())
     return path
+
+
+def _existing_file(root: Path, candidate: Path, suffixes: tuple[str, ...]) -> Path:
+    path = _contained_path(root, candidate)
+    if not path.is_file() or path.suffix.lower() not in suffixes:
+        raise ValueError(f"Invalid file: {candidate}")
+    return path
+
+
+def _resolve_stencil_path(stencil: str) -> Path:
+    return _existing_file(STENCIL_DIR, STENCIL_DIR / stencil, (".vss", ".vssx"))
 
 
 def _safe_output_path(output_name: str, suffix: str) -> Path:
@@ -119,7 +127,7 @@ def _safe_output_path(output_name: str, suffix: str) -> Path:
     if not safe_name:
         safe_name = "diagram"
     file_id = uuid.uuid4().hex[:8]
-    return OUTPUT_DIR / f"{safe_name}_{file_id}.{suffix}"
+    return _contained_path(OUTPUT_DIR, OUTPUT_DIR / f"{safe_name}_{file_id}.{suffix}")
 
 
 # ══════════════════════════════════════════════════════════
@@ -329,7 +337,8 @@ def list_stencils() -> dict:
     """列出可用的图标库文件（无需 Visio）"""
     files: list[str] = []
     for suffix in ("*.vss", "*.vssx"):
-        files.extend(sorted(p.name for p in STENCIL_DIR.glob(suffix)))
+        files.extend(sorted(p.name for p in STENCIL_DIR.glob(suffix)
+                            if p.is_file() and p.resolve().is_relative_to(STENCIL_DIR.resolve())))
     return {"ok": True, "stencils": sorted(set(files))}
 
 
@@ -508,16 +517,11 @@ def export_diagram(input_file: str, format: str = "png") -> dict:
     if format not in ("png", "pdf", "svg"):
         return {"ok": False, "error": f"Unsupported format: {format!r}. Use 'png', 'pdf', or 'svg'."}
 
-    input_path = Path(input_file).resolve()
-    if not str(input_path).startswith(str(OUTPUT_DIR.resolve())):
-        return {"ok": False, "error": f"Invalid input file path: {input_file}"}
-    if not input_path.exists():
-        return {"ok": False, "error": f"Input file not found: {input_file}"}
-
-    if format == "svg":
-        output_path = input_path.with_suffix(".svg")
-    else:
-        output_path = input_path.with_suffix(f".{format}")
+    try:
+        input_path = _existing_file(OUTPUT_DIR, Path(input_file), (".vsdx",))
+        output_path = _contained_path(OUTPUT_DIR, input_path.with_suffix(f".{format}"))
+    except (ValueError, OSError) as e:
+        return {"ok": False, "error": str(e)}
 
     def _do_export():
         mgr = get_session_manager()
@@ -556,12 +560,10 @@ def export_diagram(input_file: str, format: str = "png") -> dict:
 def update_diagram(edit_spec: dict) -> dict:
     """增量编辑已有 .vsdx 文件"""
     input_file = edit_spec["input_file"]
-    input_path = Path(input_file).resolve()
-
-    if not str(input_path).startswith(str(OUTPUT_DIR.resolve())):
-        return {"ok": False, "error": f"Invalid input file path: {input_file}", "warnings": []}
-    if not input_path.exists():
-        return {"ok": False, "error": f"Input file not found: {input_file}", "warnings": []}
+    try:
+        input_path = _existing_file(OUTPUT_DIR, Path(input_file), (".vsdx",))
+    except (ValueError, OSError) as e:
+        return {"ok": False, "error": str(e), "warnings": []}
 
     add_nodes: list[dict] = edit_spec.get("add_nodes", [])
     add_edges: list[dict] = edit_spec.get("add_edges", [])
@@ -685,8 +687,10 @@ def update_diagram(edit_spec: dict) -> dict:
 def list_outputs() -> dict:
     """列出 outputs 目录中的所有文件"""
     files = []
-    for p in sorted(OUTPUT_DIR.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True):
-        if p.is_file() and p.suffix.lower() in (".vsdx", ".png", ".pdf", ".svg"):
+    for p in sorted((f for f in OUTPUT_DIR.glob("*") if f.is_file()
+                     and f.resolve().is_relative_to(OUTPUT_DIR.resolve())),
+                    key=lambda f: f.stat().st_mtime, reverse=True):
+        if p.resolve().is_relative_to(OUTPUT_DIR.resolve()) and p.is_file() and p.suffix.lower() in (".vsdx", ".png", ".pdf", ".svg"):
             stat = p.stat()
             files.append({
                 "name": p.name,
@@ -700,19 +704,21 @@ def list_outputs() -> dict:
 
 def delete_output(filename: str) -> dict:
     """安全删除输出文件（移到回收站）"""
-    target = (OUTPUT_DIR / filename).resolve()
-    if not str(target).startswith(str(OUTPUT_DIR.resolve())):
-        return {"ok": False, "error": "Invalid file path"}
-    if not target.exists():
-        return {"ok": False, "error": f"File not found: {filename}"}
+    if not filename or any(c in filename for c in ("/", "\\", ":", "\x00")) or filename in (".", ".."):
+        return {"ok": False, "error": "Expected a plain output filename"}
+    try:
+        target = _existing_file(OUTPUT_DIR, OUTPUT_DIR / filename, (".vsdx", ".png", ".pdf", ".svg"))
+    except (ValueError, OSError) as e:
+        return {"ok": False, "error": str(e)}
 
     # Windows 回收站
     try:
         import subprocess
+        quoted_target = str(target).replace("'", "''")
         ps_cmd = (
             f"Add-Type -AssemblyName Microsoft.VisualBasic; "
             f"[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile("
-            f"'{str(target)}', 'OnlyErrorDialogs', 'SendToRecycleBin')"
+            f"'{quoted_target}', 'OnlyErrorDialogs', 'SendToRecycleBin')"
         )
         subprocess.run(
             ["powershell.exe", "-Command", ps_cmd],
@@ -725,10 +731,10 @@ def delete_output(filename: str) -> dict:
     except Exception as e:
         logger.debug("Recycle bin failed, falling back to .trash: %s", e)
         # 回退：移到 .trash 目录
-        trash_dir = OUTPUT_DIR / ".trash"
-        trash_dir.mkdir(exist_ok=True)
-        dest = trash_dir / filename
         try:
+            trash_dir = _contained_path(OUTPUT_DIR, OUTPUT_DIR / ".trash")
+            trash_dir.mkdir(exist_ok=True)
+            dest = _contained_path(OUTPUT_DIR, trash_dir / f"{uuid.uuid4().hex}_{filename}")
             target.rename(dest)
             return {"ok": True, "message": f"已移到 {dest}（回收站不可用）"}
         except Exception as e2:

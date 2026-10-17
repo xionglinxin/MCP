@@ -10,7 +10,7 @@ Huawei network automation MCP servers for AI agents.
 ## Requirements
 
 - Python >= 3.10
-- `mcp >= 1.0.0`, `pydantic >= 2.0.0`
+- `mcp == 1.29.0`, `pydantic >= 2.0.0`
 - visio-draw-mcp additionally requires: Windows + Microsoft Visio + `pywin32`
 
 ## Quick Start
@@ -24,3 +24,8 @@ python -m venv .venv && .venv/Scripts/pip install -e .
 ```
 
 Configure in Claude Desktop / QoderWork MCP settings pointing to each server's `server.py`.
+
+## Hardening and offline checks
+
+See [HARDENING.md](HARDENING.md) for regression-test commands, the new eNSP
+bundle output layout, filesystem guarantees and remaining Windows COM limits.

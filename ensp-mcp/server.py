@@ -65,7 +65,8 @@ def template_list_resource() -> str:
 def output_list_resource() -> str:
     """以资源形式暴露已生成的文件列表"""
     files = sorted(
-        f.name for f in OUTPUT_DIR.glob("*") if f.is_file()
+        str(f.relative_to(OUTPUT_DIR)) for f in OUTPUT_DIR.rglob("*")
+        if f.is_file() and not any(part.startswith(".staging-") for part in f.relative_to(OUTPUT_DIR).parts)
     )
     if not files:
         return "(empty)"
@@ -366,6 +367,8 @@ if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "--http":
         port = int(sys.argv[2])
         print(f"eNSP Draw MCP Server v{SERVER_VERSION} — HTTP mode on port {port}")
-        mcp.run(transport="streamable-http", host="127.0.0.1", port=port)
+        mcp.settings.host = "127.0.0.1"
+        mcp.settings.port = port
+        mcp.run(transport="streamable-http")
     else:
         mcp.run()

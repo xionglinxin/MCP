@@ -10,6 +10,7 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 from config import OUTPUT_DIR, STENCIL_DIR
+from drawing import _contained_path, _resolve_stencil_path
 from visio_driver import (
     VIS_FIXED_FORMAT_PDF,
     VIS_OPEN_HIDDEN,
@@ -56,16 +57,16 @@ def add_cable(page, x1, y1, x2, y2, color: str = "RGB(40,40,40)", weight: str = 
 def generate():
     OUTPUT_DIR.mkdir(exist_ok=True)
 
-    vsdx = OUTPUT_DIR / f"{OUTPUT_STEM}.vsdx"
-    png = OUTPUT_DIR / f"{OUTPUT_STEM}.png"
-    pdf = OUTPUT_DIR / f"{OUTPUT_STEM}.pdf"
+    vsdx = _contained_path(OUTPUT_DIR, OUTPUT_DIR / f"{OUTPUT_STEM}.vsdx")
+    png = _contained_path(OUTPUT_DIR, OUTPUT_DIR / f"{OUTPUT_STEM}.png")
+    pdf = _contained_path(OUTPUT_DIR, OUTPUT_DIR / f"{OUTPUT_STEM}.pdf")
     for p in (vsdx, png, pdf):
         if p.exists():
             p.unlink()
 
     with _visio_session() as visio:
         stencil_doc = visio.Documents.OpenEx(
-            str(STENCIL_DIR / STENCIL_NAME), VIS_OPEN_RO | VIS_OPEN_HIDDEN
+            str(_resolve_stencil_path(STENCIL_NAME)), VIS_OPEN_RO | VIS_OPEN_HIDDEN
         )
         try:
             doc = visio.Documents.Add("")
